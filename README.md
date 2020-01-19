@@ -7,4 +7,4 @@ sensors, ADCs and Arduino.
 
 # led.py
 
-![Connections](circuits/led_bb.pdf)
+![Connections](circuits/led_bb.png)
