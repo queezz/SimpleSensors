@@ -6,6 +6,8 @@ from pandas import read_csv
 import matplotlib.dates as mdates
 from pandas.plotting import register_matplotlib_converters
 
+DATADIR = '../data'
+
 def ticks_visual(ax,**kwarg):
     '''
     makes auto minor and major ticks for matplotlib figure
@@ -51,9 +53,10 @@ def gritix(**kws):
 def main():
     register_matplotlib_converters()
 
-    lst = sorted([i for i in os.listdir('.') if '.txt' in i and '2020' in i])
+    lst = sorted([i for i in os.listdir(DATADIR) if '.txt' in i and '2020' in i])
     fname = lst[-1]
-    data = read_csv(fname,na_values=['nan',' nan'])
+    fpth = os.path.join(DATADIR,fname)
+    data = read_csv(fpth,na_values=['nan',' nan'])
     lbls = data.keys()
 
     t = [datetime.datetime.strptime(i, '%Y/%m/%d %H:%M:%S') for i in data['time']]
@@ -69,12 +72,14 @@ def main():
     
     ticks_visual(plt.gca())
     grid_visual(plt.gca())
+    savepth = os.path.join(
+        os.path.expanduser('~'),
+        'Desktop',
+        fname[:-3]+'png',
+    )
+    print(f'saving to {savepth}')
     plt.savefig(
-        os.path.join(
-            os.path.expanduser('~'),
-            'Desktop',
-            fname[:-3]+'png',
-       ),
+       savepth,
        dpi=300,
        bbox_inches='tight',
     )

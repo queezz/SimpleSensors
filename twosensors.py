@@ -4,6 +4,7 @@ import board
 import RPi.GPIO as GPIO
 import adafruit_dht
 import datetime
+import os
 
 def main():
     """ Setu-up SPI for MAX6675, GPIOs for DHT11 and LEDs
@@ -24,7 +25,11 @@ def main():
 
     dhtDevice = adafruit_dht.DHT11(board.D12)
 
+    datafolder = '../data'
+
     fname = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")+'.txt'
+
+    fname = os.path.join(datafolder,fname)
     with open(fname,'a') as f:
         f.write('time, DHT11 T[C],DHT11 H[%],MAX667 T[C]\n')
 
