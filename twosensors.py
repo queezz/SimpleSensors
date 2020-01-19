@@ -5,13 +5,17 @@ import RPi.GPIO as GPIO
 import adafruit_dht
 import datetime
 import os
+import threading
+
+from ledThread import LED
 
 def main():
     """ Setu-up SPI for MAX6675, GPIOs for DHT11 and LEDs
     and run the main loop with data aquisition, saving 
     data to a csv file.
     """
-    clrs = {'red':0,'green':1,'blue':2}
+    global leds
+
     CHS = [21,20,16]
     setup_LEDs(CHS)
     pi = pigpio.pi()
@@ -53,14 +57,24 @@ def main():
             temperature_c = f'{dhtDevice.temperature:.1f}'
             #temperature_f = temperature_c * (9 / 5) + 32
             humidity = dhtDevice.humidity
+            
             """ Control indicator LEDs here """
-            updateLEDs(humidity,clrs,[30,55],CHS)
+            updateLEDs(humidity,[30,55])
+
             humidity = f'{humidity}'
         except RuntimeError as error:
             pass
             #print(error.args[0])
                 
         now = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+
+        if int(now[-5:-3])%30 == 0:
+            leds['blue'].on()
+            leds['blue'].blink_start()
+        else:
+            leds['blue'].off()
+            leds['blue'].blink_stop()
+
         print(f"{now} T: {temperature_c}C H: {humidity}% K: {t}C")
         
         with open(fname,'a') as f:
@@ -72,43 +86,58 @@ def main():
     pi.stop()
     GPIO.cleanup()
 
-def updateLEDs(humidity,clrs,lims = [30,50],CHS = [21,20,16]):
+def updateLEDs(humidity,lims = [30,50]):
     """ Control indicator LEDs here """
-    #clrs = {'red':0,'green':1,'blue':2}
     #print(humidity,lims[1],lims[0])
+    global leds
 
     if humidity > lims[1]:
-        led_indicator(clrs['red'],CHS)
+        change_leds('red')
     elif humidity<lims[0]:
-        led_indicator(clrs['blue'],CHS)
+        change_leds('blue')
     else:
-        led_indicator(clrs['green'],CHS)
+        change_leds('green')
+
+def change_leds(name):
+    """ """
+    global leds
+    
+    for n,led in leds.items():
+        if n == name:
+            led.on()
+        else:
+            led.off()
 
 def setup_LEDs(CHS = [21,20,16]):
     """ Setup GPIOs for LEDs """
+    global leds
+
     GPIO.setmode(GPIO.BCM)
 
     for CH in CHS:
         GPIO.setup(CH, GPIO.OUT)
 
+    period = 0.008
+    duties = [0.08,0.01,0.08]
+    dur = 0.3
+    # define leds
+    nms = ['red','green','blue']
+    leds  = {n:LED(CH,duty,period) for CH,duty,n in zip(CHS,duties,nms)}
+    [led.blink_setup(durs=[1,1]) for led in leds.values()]
+    [led.start() for led in leds.values()]
+    [led.off() for led in leds.values()]
+
 def stop_LEDs(CHS):
     """ Turn LEDs off, such as before quiting """
-    [GPIO.output(CH,0) for CH in CHS]
+    global leds
 
-def led_indicator(led_ind=0, CHS=[21,20,16]):
-    """ Indicate the humidity level with 3 LEDs:
-    HIGH - RED, OPTIMAL - GREEN, LOW - BLUE
-    """
-    
-    for i,CH in enumerate(CHS):
-       if i == led_ind:
-           GPIO.output(CH,1)
-       else:
-           GPIO.output(CH,0) 
+    [led.off() for led in leds.values()]
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        [led.stop() for led in leds.values()]
+        [led.join() for led in leds.values()]
         GPIO.cleanup()
         print('\nGPIO cleaned up after interruption')
