@@ -2,13 +2,10 @@ import time
 import RPi.GPIO as GPIO
 import numpy as np
 
-def main(CHS = [21,20,16]):
-    """ LED test """
-    GPIO.setmode(GPIO.BCM)
 
-    for CH in CHS:
-        GPIO.setup(CH, GPIO.OUT)
-        GPIO.output(CH,1) 
+def prog1(CHS = [21,20,16]):
+    """ LED test """
+    setup_pins(CHS)
 
     for dt in [0.3,0.1,0.05,0.01]:
         for i in range(9):
@@ -26,7 +23,6 @@ def main(CHS = [21,20,16]):
             GPIO.output(CH,i%2)
 
     turn_off(CHS)
-    GPIO.cleanup()
 
 def set_led(led_ind = 0,CHS=[21,20,16]):
     """ Set one LED ON while turning others OFF """
@@ -40,11 +36,34 @@ def set_led(led_ind = 0,CHS=[21,20,16]):
 def turn_off(CHS):
     """ Turn off all LEDs """
     [GPIO.output(CH,0) for CH in CHS]
+    GPIO.cleanup()
+    print('\nGPIO cleaned up after interruption')
+
+def setup_pins(CHS = [21,20,16]):
+    """ setup GPIO pins to write mode"""
+    GPIO.setmode(GPIO.BCM)
+    [GPIO.setup(CH, GPIO.OUT) for CH in CHS]
     
+def dim(CHS = [21,20,16]):
+    """ Blink using GPIO PWM """
+    setup_pins(CHS)
+    nms = ['led1','led2','led3']
+    leds = {n:GPIO.PWM(CH,50) for n,CH in zip(nms,CHS)}
+    [led.start(0) for led in leds.values()] 
+
+    while True:
+        for i in range(100):
+            [led.ChangeDutyCycle(i) for led in leds.values()] 
+            time.sleep(0.02)
+        for i in range(100):
+            [led.ChangeDutyCycle(100-i) for led in leds.values()] 
+            time.sleep(0.02)
+
+    #[led.stop() for led in leds.values()] 
+
 if __name__ == "__main__":
     try:
-        for i in range(100):
-            main()
+        #prog1()
+        dim()
     except KeyboardInterrupt:
-        GPIO.cleanup()
-        print('\nGPIO cleaned up after interruption')
+        turn_off(CHS = [21,20,16])
