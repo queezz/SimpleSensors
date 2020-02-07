@@ -6,7 +6,7 @@ pot = 14
 try:
     connection = SerialManager()
     a = ArduinoApi(connection = connection)
-except Error as err:
+except Exception as err:
     print(f"Failed to connect to Arduino {err}")
 
 # Setup the pinModes as if we were in the Arduino IDE
