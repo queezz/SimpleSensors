@@ -1,3 +1,9 @@
+"""
+Define a LED class to control LED swithching on and off.
+Pulse width modulation is implemented with threading for practice.
+
+Compare with GPIO built in pwm.
+"""
 import time
 import RPi.GPIO as GPIO
 import numpy as np
